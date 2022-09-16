@@ -48,7 +48,7 @@ class TypeDBSink(DataSink):
     """
     def __init__(self, connection, clear=False, import_type="STIX21", **kwargs):	
         super(TypeDBSink, self).__init__()
-        logger.debug(f'TypeDBSink: {connection}')
+
         self._stix_connection = connection
         self.uri = connection["uri"]
         self.port = connection["port"]

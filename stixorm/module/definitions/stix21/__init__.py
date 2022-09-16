@@ -15,7 +15,8 @@ __status__ = "Production"
 
 import json
 from glob import glob
-from loguru import logger
+import logging
+logger = logging.getLogger(__name__)
 import os
 from pathlib import Path
 

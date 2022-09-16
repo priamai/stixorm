@@ -18,10 +18,12 @@
 # specific language governing permissions and limitations
 # under the License.
 #
-from importlib.resources import files
+
 from typedb.client import *
 import logging
 logger = logging.getLogger(__name__)
+
+import pkgutil
 
 def initialise_database(uri, port, database, user, password, clear=False):
     url = uri + ":" + port
@@ -34,8 +36,10 @@ def initialise_database(uri, port, database, user, password, clear=False):
         client.databases().create(database)
         # Stage 1: Create the schema
         with client.session(database, SessionType.SCHEMA) as session:
-            schema = files('stixorm.schema').joinpath('cti-schema-v2.tql').read_text()
-            rules = files('stixorm.schema').joinpath('cti-rules.tql').read_text()
+            #schema = files('stixorm.schema').joinpath('cti-schema-v2.tql').read_text()
+            #rules = files('stixorm.schema').joinpath('cti-rules.tql').read_text()
+            schema = pkgutil.get_data(__name__, "cti-schema-v2.tql")
+            rules = pkgutil.get_data(__name__, "cti-rules.tql")
 
             logger.debug('.....')
             logger.debug('Inserting schema ...')
