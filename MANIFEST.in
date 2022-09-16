@@ -1,0 +1,3 @@
+include stixorm/module/definitions/stix21/data/*.json
+include stixorm/schema/cti-rules.tql
+include stixorm/schema/cti-schema-v2.tql
