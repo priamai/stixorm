@@ -22,10 +22,11 @@ from stix2.parsing import parse
 from stix2.serialization import fp_serialize
 from stix2.utils import format_datetime, get_type_from_id, parse_into_datetime
 
-from stixorm.module.initialise import setup_database
+from stixorm.module.initialise import setup_database,load_schema,load_markings,load_typeql_data
 
 import sys
-
+from pathlib import Path
+print(Path.cwd())  # /home/skovorodkin/stack
 import logging
 logger = logging.getLogger(__name__)
 
@@ -63,6 +64,8 @@ class TypeDBSink(DataSink):
         self.user = connection["user"]
         self.password = connection["password"]
         self.clear = clear
+        self.thisfile = Path(__file__).resolve()
+        self.schema_folder = Path.joinpath(self.thisfile.parent.parent, "schema")
         if import_type is None:
             import_type = {"STIX21": True, "CVE": False, "identity": False, "location": False, "rules": False}
             import_type.update({"ATT&CK": False, "ATT&CK_Versions": ["12.0"],
@@ -77,23 +80,23 @@ class TypeDBSink(DataSink):
 
             # 2. Load the Stix schema
             if clear:
-                load_schema(connection, "stix/schema/cti-schema-v2.tql", "Stix 2.1 Schema ")
+                load_schema(connection, self.schema_folder/"cti-schema-v2.tql", "Stix 2.1 Schema ")
                 self.loaded = load_markings(connection)
                 logger.debug("moving past load Stix schema")
             # 3. Check for Stix Rules
             if clear and import_type["rules"]:
                 logger.debug("rules")
-                load_schema(connection, "stix/schema/cti-rules.tql", "Stix 2.1 Rules")
+                load_schema(connection, self.schema_folder/"cti-rules.tql", "Stix 2.1 Rules")
                 logger.debug("moving past load rules")
             # 3. Load the Stix Markings
             if clear and import_type["ATT&CK"]:
                 logger.debug("attack")
-                load_schema(connection, "stix/schema/cti-schema-v2.tql", "Stix 2.1 Schema ")
+                load_schema(connection, self.schema_folder/"cti-schema-v2.tql", "Stix 2.1 Schema ")
                 logger.debug("moving past load schema")
             # 3. Check for Stix Rules
             if clear and import_type["CACAO"]:
                 logger.debug("cacao")
-                load_schema(connection, "stix/schema/cti-rules.tql", "Stix 2.1 Rules")
+                load_schema(connection, self.schema_folder/"cti-rules.tql", "Stix 2.1 Rules")
                 logger.debug("moving past load schema")
 
         except Exception as e:
@@ -104,7 +107,7 @@ class TypeDBSink(DataSink):
     def stix_connection(self):
         return self._stix_connection
 
-    def get_stix_ids(self):
+    def get_stix_ids(self,tlp_filter=True):
         """ Get all the stix-ids in a database, should be moved to typedb file
 
         Returns:
@@ -120,7 +123,7 @@ class TypeDBSink(DataSink):
                     ids = [ans.get("ids") for ans in answer_iterator]
                     for sid_obj in ids:
                         sid = sid_obj.get_value()
-                        if sid in marking:
+                        if sid in marking and tlp_filter:
                             continue
                         else:
                             id_list.append(sid)
