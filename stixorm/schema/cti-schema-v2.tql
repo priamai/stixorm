@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2021 Vaticle
+# Copyright (C) 2022 OS-Threat
 #
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
@@ -18,19 +18,24 @@
 # specific language governing permissions and limitations
 # under the License.
 #
+# Note: Large portions of this schema were defined by Tomas Sabat, Vaticle, 2021
+#
 
 define
-stix-object sub entity, 
+stix-entity sub entity,
+    abstract;
+
+stix-object sub stix-entity,
 	# Required
 	owns stix-type,
-	owns stix-id, # TODO should be a key
+	owns stix-id @key, # TODO should be a key
 	owns custom-attribute,
 	plays stix-core-relationship:source,
 	plays stix-core-relationship:target,
-	plays obj-ref:referred, 
+	plays obj-refs:referred,
 	plays granular-marking:object;
 
-	stix-core-object sub stix-object, 
+	stix-core-object sub stix-object,
 		# Required for SDO but Optional for SCO
 		owns spec-version,
 
@@ -38,19 +43,19 @@ stix-object sub entity,
 		plays object-marking:marked,
 		plays created-by:created,
 
-		# Common relations for SDOs and SCOs. Defined in 3.7. 
+		# Common relations for SDOs and SCOs. Defined in 3.7.
 		plays derivation:derived-from,
 		plays derivation:deriving,
 		plays duplicate:duplicated-object,
 		plays relatedness:related-to;
 
-			stix-domain-object sub stix-core-object, 
+			stix-domain-object sub stix-core-object,
 				# Required
 				owns created,
-				owns modified, 
+				owns modified,
 
 				# Optional
-				owns revoked, 
+				owns revoked,
 				owns labels,
 				owns confidence,
 				owns langs,
@@ -62,48 +67,54 @@ stix-object sub entity,
 			stix-cyber-observable-object sub stix-core-object,
 				owns defanged,
 				plays malware-env:env,
-				plays extensions:sco;
+				plays extensions:sco,
+				plays consist:consisted;
 
-	stix-meta-object sub stix-object, 
-		abstract, 
-		owns created, 
-		owns modified;
+	stix-sub-object sub stix-entity,
+		abstract,
+		owns created,
+		owns modified,
+        plays stix-core-relationship:source,
+        plays stix-core-relationship:target,
+        plays obj-refs:referred,
+        plays granular-marking:object;
+
 
 ##### 2 Common Data Types #####
 
 # 2.5 External Reference
-external-reference sub stix-meta-object,
+external-reference sub stix-sub-object,
 	# In addition to source-name, at least one of description, url or external-id must be present§
 	# Required
-	owns source-name, 
+	owns source-name,
 
 	# Optional
 	owns description,
-	owns url-link, 
-	owns external-id, 
+	owns url-link,
+	owns external-id,
 	plays hashes:owner,
 	plays external-references:referenced;
 
 
 # 2.7 Hash
-hash sub entity, 
-	owns hash-value, 
-	plays hashes:pointed-to; 
+hash sub entity,
+	owns hash-value,
+	plays hashes:pointed-to;
 
 	md-5 sub hash;
-	sha-1 sub hash; 
+	sha-1 sub hash;
 	sha-256 sub hash;
-	sha-512 sub hash; 
-	sha3-256 sub hash; 
+	sha-512 sub hash;
+	sha3-256 sub hash;
 	sha3-512 sub hash;
-	ssdeep sub hash; 
-	tlsh sub hash; 
+	ssdeep sub hash;
+	tlsh sub hash;
 
 
 
 # 2.11 Kill Chain Phase
-kill-chain-phase sub stix-meta-object,
-	owns kill-chain-name, 
+kill-chain-phase sub stix-sub-object,
+	owns kill-chain-name,
 	owns phase-name,
 	plays kill-chain-usage:kill-chain-using,
 
@@ -115,21 +126,21 @@ kill-chain-phase sub stix-meta-object,
 
 # Custom object
 custom-object sub stix-domain-object,
-	owns name, 
-	owns description, 
-	owns aliases, 
+	owns name,
+	owns description,
+	owns aliases,
 	owns first-seen,
 	owns last-seen,
 	owns objective,
 	plays kill-chain-usage:kill-chain-used,
-	plays delivers:deliverers,
+	plays delivers:delivering,
 	plays targets:targetter,
 	plays uses:used-by,
 	plays mitigates:mitigated,
 	plays uses:used;
 
 
-# 4.1 
+# 4.1
 attack-pattern sub stix-domain-object,
 	owns name,
 	owns description,
@@ -139,27 +150,27 @@ attack-pattern sub stix-domain-object,
 	plays kill-chain-usage:kill-chain-used,
 
 	# Common Relations
-	plays delivers:deliverers,
+	plays delivers:delivering,
 	plays targets:targetter,
 	plays uses:used-by,
 
 	# Reverse Relations
 	# plays indicates:indicated, -> Defined in SDO
 	plays mitigates:mitigated,
-	plays uses:used; 
+	plays uses:used;
 
 	# Embedded Relations
 	# created-by
 	# Object marking ref
 
 # 4.2 Campaign
-campaign sub stix-domain-object, 
-	owns name, 
-	owns description, 
-	owns aliases, 
+campaign sub stix-domain-object,
+	owns name,
+	owns description,
+	owns aliases,
 	owns first-seen,
 	owns last-seen,
-	owns objective, 
+	owns objective,
 
 	# Common Relations
 	plays attributed-to:result,
@@ -177,8 +188,8 @@ campaign sub stix-domain-object,
 
 # 4.3 Course of Action
 course-of-action sub stix-domain-object,
-	owns name, 
-	owns description, 
+	owns name,
+	owns description,
 	owns action,
 
 	# Common Relations
@@ -193,14 +204,14 @@ course-of-action sub stix-domain-object,
 	# created-by
 	# Object marking ref
 
-# 4.4 Grouping 
+# 4.4 Grouping
 grouping sub stix-domain-object,
-	owns name, 
-	owns description, 
+	owns name,
+	owns description,
 	owns context,
 
 	# Common Relations
-	# NA 
+	# NA
 
 	# Reverse Relations
 	# NA
@@ -208,12 +219,12 @@ grouping sub stix-domain-object,
 	# Embedded Relations
 	# created-by
 	# Object markings
-	plays obj-ref:object;
+	plays obj-refs:object;
 
 # 4.5 Identity
 identity sub stix-domain-object,
-	owns name, 
-	owns description, 
+	owns name,
+	owns description,
 	owns stix-role,
 	owns identity-class,
 	owns sector,  # should this perhaps be a relation?
@@ -224,14 +235,14 @@ identity sub stix-domain-object,
 
 	# Reverse Relations
 	plays targets:targetted,
-	plays attributed-to:fault-of, 
+	plays attributed-to:fault-of,
 	plays impersonate:impersonated,
 
 	# Embedded Relations
 	plays created-by:creator,
 	# Object marking ref
-	
-	plays sighting:where-sighted; 
+
+	plays sighting:where-sighted;
 
 	# 10.7 Identity Class Vocabulary
 	individual sub identity;
@@ -242,8 +253,8 @@ identity sub stix-domain-object,
 	id-unknown sub identity;
 
 # 4.6 Incident
-incident sub stix-domain-object, 
-	owns name, 
+incident sub stix-domain-object,
+	owns name,
 	owns description;
 
  	# Common Relations
@@ -257,12 +268,12 @@ incident sub stix-domain-object,
 	# Object Marking
 
 # 4.7 Indicator
-indicator sub stix-domain-object, 
-	owns name, 
-	owns description, 
+indicator sub stix-domain-object,
+	owns name,
+	owns description,
 	owns indicator-type,
-	owns pattern, 
-	owns pattern-type, 
+	owns pattern,
+	owns pattern-type,
 	owns pattern-version,
 	owns valid-from,
 	owns valid-until,
@@ -282,13 +293,13 @@ indicator sub stix-domain-object,
 	# created-by
 	# Object marking ref
 
-# 4.8 Infrastructure 
+# 4.8 Infrastructure
 infrastructure sub stix-domain-object,
-	owns name, 
+	owns name,
 	owns description,
 	owns infrastructure-types, # Should this OV be a relation to define?
-	owns aliases, 
-	plays kill-chain-usage:kill-chain-used, 
+	owns aliases,
+	plays kill-chain-usage:kill-chain-used,
 	owns first-seen,
 	owns last-seen,
 
@@ -297,7 +308,7 @@ infrastructure sub stix-domain-object,
 	plays consist:consisting,
 	plays control:controlling,
 
-	plays delivers:deliverers,
+	plays delivers:delivering,
 	plays have:having,
 	plays hosts:hosting,
 	plays located-at:locating,
@@ -319,14 +330,14 @@ infrastructure sub stix-domain-object,
 
 # 4.9 Intrusion Set
 intrusion-set sub stix-domain-object,
-	owns name, 
-	owns description, 
-	owns aliases, 
+	owns name,
+	owns description,
+	owns aliases,
 	owns first-seen,
 	owns last-seen,
-	owns goals, 
-	owns resource-level, 
-	owns primary-motivation, 
+	owns goals,
+	owns resource-level,
+	owns primary-motivation,
 	owns secondary-motivations,
 
 	# Common Relations
@@ -335,24 +346,24 @@ intrusion-set sub stix-domain-object,
 	plays hosts:hosting,
 	plays ownership:owning,
 	plays originates-from:originating,
-	plays targets:targetter, 
+	plays targets:targetter,
 	plays uses:used-by,
 
 	# Reverse Relations
-	plays attributed-to:fault-of, 
+	plays attributed-to:fault-of,
 	plays authored-by:authored,
 	# plays indicates:indicated; Already defined in SDO
 
 	# Embedded Relations
 	# created-by
-	# Object marking 
+	# Object marking
 
 	# Inferred role player
 	plays inferred-mitigation:mitigated;
 
 # 4.10 Location
 location sub stix-domain-object,
-	owns name, 
+	owns name,
 	owns description,
 	owns latitude,
 	owns longitude,
@@ -378,18 +389,18 @@ location sub stix-domain-object,
 	# Object marking
 
 # 4.11 Malware
-malware sub stix-domain-object, 
-	owns name, 
-	owns description, 
+malware sub stix-domain-object,
+	owns name,
+	owns description,
 	owns malware-types,
-	owns is-family, 
+	owns is-family,
     owns aliases,
     owns first-seen,
     owns last-seen,
     owns architecture-execution-envs,
     owns implementation-languages,
     owns capabilities,
-    
+
     # Relations defined as properties in STIX
 	plays kill-chain-usage:kill-chain-used,
 	plays malware-sample:sample-for, # ssample_refs
@@ -407,6 +418,7 @@ malware sub stix-domain-object,
     plays hosts:hosting,
     plays uses:used-by,
     plays variant:variant-source,
+    plays communicates-with:communicating,
 
    	# Reverse Relations
    	plays variant:variant-target,
@@ -433,7 +445,7 @@ malware sub stix-domain-object,
 
 # 4.12 Malware Analysis
 malware-analysis sub stix-domain-object,
-	owns product, 
+	owns product,
 	owns version,
 	owns configuration-version,
 	owns module,
@@ -446,7 +458,7 @@ malware-analysis sub stix-domain-object,
 	owns result,
 
 	# Relations defined as properties in STIX
-	# host_vm_ref, _operating_system_ref, instsalled_software_ref, analysis-sco are all defined as 
+	# host_vm_ref, _operating_system_ref, instsalled_software_ref, analysis-sco are all defined as
 	# playing roles in the analysis relation
 	plays malware-analysis-sample:sample-for, # sample_refs
 
@@ -471,23 +483,23 @@ malware-analysis sub stix-domain-object,
 
 
 # 4.13 Note
-note sub stix-domain-object, 
-	owns abstract-note, 
-	owns content, 
+note sub stix-domain-object,
+	owns abstract-note,
+	owns content,
 	owns authors,
 
-	# Relations 
+	# Relations
 	# NA
 
 	# Embedded Relations
 	# created-by
 	# Object marking
-	plays obj-ref:object;
+	plays obj-refs:object;
 
 # 4.14
 observed-data sub stix-domain-object,
-	owns first-observed, 
-	owns last-observed, 
+	owns first-observed,
+	owns last-observed,
 	owns number-observed,
 
 	# Common Relations
@@ -502,13 +514,13 @@ observed-data sub stix-domain-object,
 	# Embedded Relations
 	# created-by
 	# Object marking
-	plays obj-ref:object; # Object ref
+	plays obj-refs:object; # Object ref
 
 # 4.15 Opinion
-opinion sub stix-domain-object, 
+opinion sub stix-domain-object,
 	owns explanation,
 	owns authors,
-	owns opinion-enum, 
+	owns opinion-enum,
 
 	# Common Relations
 	# NA
@@ -519,14 +531,14 @@ opinion sub stix-domain-object,
 	# Embedded relations
 	# created-by
 	# Object marking
-	plays obj-ref:object;
+	plays obj-refs:object;
 
 # 4.16 Report
-report sub stix-domain-object, 
-	owns name, 
+report sub stix-domain-object,
+	owns name,
 	owns description,
-	owns report-type, 
-	owns published, 
+	owns report-type,
+	owns published,
 
 	# Common Relations
 	# NA
@@ -535,14 +547,14 @@ report sub stix-domain-object,
 	# NA
 
 	# Embedded relations
-	# created-by 
+	# created-by
 	# Object Marking
-	plays obj-ref:object;
+	plays obj-refs:object;
 
 # 4.17
 threat-actor sub stix-domain-object,
-	owns name, 
-	owns description, 
+	owns name,
+	owns description,
 	owns threat-actor-type,
 	owns aliases,
 	owns first-seen,
@@ -550,7 +562,7 @@ threat-actor sub stix-domain-object,
 	owns stix-role,
 	owns goals,
 	owns sophistication,
-	owns resource-level, 
+	owns resource-level,
 	owns primary-motivation,
 	owns secondary-motivations,
 	owns personal-motivations,
@@ -572,7 +584,7 @@ threat-actor sub stix-domain-object,
 	# plays indicates:indicated # defined in SDO
 
 	# Embedded relations
-	# created-by 
+	# created-by
 	# Object Marking
 
 # 4.18 Tool
@@ -580,14 +592,14 @@ tool sub stix-domain-object,
 	owns name,
 	owns description,
 	owns tool-type,
-	owns aliases, 
+	owns aliases,
 	owns tool-version,
 
 	# Relations defined as properties in STIX
 	plays kill-chain-usage:kill-chain-used,
 
 	# Common Relations
-	plays delivers:deliverers,
+	plays delivers:delivering,
 	plays drop:dropping,
 	plays have:having,
 	plays targets:targetter,
@@ -607,7 +619,7 @@ tool sub stix-domain-object,
 
 # 4.19 Vulnerability TODO
 vulnerability sub stix-domain-object,
-	owns name, 
+	owns name,
 	owns description,
 
 	# Relations defined as properties in STIX
@@ -633,7 +645,7 @@ vulnerability sub stix-domain-object,
 stix-core-relationship sub relation,
 	# Required
 	owns spec-version,
-	owns stix-id, 
+	owns stix-id @key,
 	owns created,
 	owns modified,
 	owns stix-type,
@@ -642,28 +654,28 @@ stix-core-relationship sub relation,
 	owns description,
 	owns revoked,
 	owns labels,
-	owns confidence, 
+	owns confidence,
 	owns langs,
 	owns start-time,
 	owns stop-time,
 	owns relationship-type,
 	owns custom-attribute,
 
-	relates source, 
+	relates source,
 	relates target,
-	plays obj-ref:referred,
+	plays obj-refs:referred,
 	plays object-marking:marked,
-	plays granular-marking:object, 
+	plays granular-marking:object,
 	plays external-references:referencing,
 	plays created-by:created;
 
 
-	# Specific Relationships from Appendix B
-	delivers sub stix-core-relationship, 
-		relates deliverers as source, 
+	# Specific Relationships from Appendix C
+	delivers sub stix-core-relationship,
+		relates delivering as source,
 		relates delivered as target;
 
-	targets sub stix-core-relationship, 
+	targets sub stix-core-relationship,
 		relates targetter as source,
 		relates targetted as target;
 
@@ -671,18 +683,18 @@ stix-core-relationship sub relation,
 		relates used-by as source,
 		relates used as target;
 
-	attributed-to sub stix-core-relationship, 
+	attributed-to sub stix-core-relationship,
 		relates result as source,
-		relates fault-of as target; 
-	
+		relates fault-of as target;
+
 	compromises sub stix-core-relationship,
 		relates compromising as source,
 		relates compromised as target;
-	
+
 	originates-from sub stix-core-relationship,
 		relates originated-from as target,
 		relates originating as source;
-	
+
 	investigates sub stix-core-relationship,
 		relates investigating as source,
 		relates investigated as target;
@@ -690,19 +702,19 @@ stix-core-relationship sub relation,
 	mitigates sub stix-core-relationship,
 		relates mitigated as target,
 		relates mitigator as source;
-	
+
 	located-at sub stix-core-relationship,
 		relates located as target,
 		relates locating as source;
 
-	indicates sub stix-core-relationship, 
+	indicates sub stix-core-relationship,
 		relates indicating as source,
-		relates indicated as target; 
-	
+		relates indicated as target;
+
 	based-on sub stix-core-relationship,
 		relates basing-on as source,
 		relates basis as target;
-	
+
 	communicates-with sub stix-core-relationship,
 		relates communicating as source,
 		relates communicated as target;
@@ -714,31 +726,35 @@ stix-core-relationship sub relation,
 	control sub stix-core-relationship,
 		relates controlling as source,
 		relates controlled as target;
-	
+
 	have sub stix-core-relationship, # Could come up with a better name?
 		relates having as source,
 		relates had as target;
-	
+
 	hosts sub stix-core-relationship,
 		relates hosting as source,
 		relates hosted as target;
-	
+
 	ownership sub stix-core-relationship,
 		relates owned as target,
 		relates owning as source;
-	
+
 	authored-by sub stix-core-relationship,
 		relates authoring as source,
 		relates authored as target;
 
+	resolve-to sub stix-core-relationship,
+	    relates resolves-from as source,
+	    relates resolves-to as target;
+
 	beacon sub stix-core-relationship,
 		relates beaconed-to as target,
 		relates beaconing-to as source;
-	
+
 	exfiltrate sub stix-core-relationship,
 		relates exfiltrated-to as target,
 		relates exfiltrating-to as source;
-	
+
 	download sub stix-core-relationship,
 		relates downloaded as target,
 		relates downloading as source;
@@ -778,22 +794,23 @@ stix-core-relationship sub relation,
 
 
 # 5.2 Sighting
-sighting sub stix-core-relationship, 
+sighting sub stix-core-relationship,
 	owns first-seen,
 	owns last-seen,
 	owns count,
 	owns summary,
 	relates where-sighted,
-	relates sighting-of as source, 
+	relates sighting-of as source,
 	relates observed;
 
-##### 6 STIX™ Cyber-observable Objects ##### 
+##### 6 STIX™ Cyber-observable Objects #####
+stix_sco_sub_object sub stix-sub-object;
 
 # 6.1 Artifact Object
 artifact sub stix-cyber-observable-object,
 	owns mime-type,
 	owns payload-bin,
-	owns url-link, 
+	owns url-link,
 	plays hashes:owner,
 	owns encryption-algorithm,
 	owns decryption-key,
@@ -815,7 +832,7 @@ autonomous-system sub stix-cyber-observable-object,
 
 # 6.3 Directory Object
 directory sub stix-cyber-observable-object,
-	owns path, 
+	owns path,
 	owns path-enc,
 	owns ctime,
 	owns mtime,
@@ -827,16 +844,18 @@ directory sub stix-cyber-observable-object,
 
 # 6.4 Domain Name Object
 domain-name sub stix-cyber-observable-object,
-	owns stix-value, 
-	plays resolves:resolve,
-	plays resolves:resolves-to,
+	owns stix-value,
+	plays resolves-to-ref:from-ref,
+	plays resolves-to-ref:to-ref,
 	plays communicates-with:communicated,
 	plays traffic-src:source,
-	plays traffic-dst:destination;
+	plays traffic-dst:destination,
+	plays resolve-to:resolves-from,
+	plays resolve-to:resolves-to;
 
 # 6.5 Email Address Object
 email-addr sub stix-cyber-observable-object,
-	owns stix-value, 
+	owns stix-value,
 	owns display-name,
 	plays belongs:belonged,
 	plays from-email:email-address,
@@ -865,16 +884,16 @@ header-key sub stix-attribute-string,
 	owns header-value,
 	plays additional-header:item;
 
-email-mime-part sub stix-cyber-observable-object,
+email-mime-part sub stix_sco_sub_object,
 	owns body,
-	owns content-type, 
-	owns content-disposition, 
+	owns content-type,
+	owns content-disposition,
 	plays body-multipart:mime-part,
 	plays body-raw-references:containing-mime;
 
 # 6.7 File
 file sub stix-cyber-observable-object,
-	plays hashes:owner, 
+	plays hashes:owner,
 	owns size,
 	owns name,
 	owns name-enc,
@@ -882,7 +901,7 @@ file sub stix-cyber-observable-object,
 	owns mime-type,
 	owns ctime,
 	owns mtime,
-	owns atime, 
+	owns atime,
 
 	plays directory-contains:contained,
 	plays directory-parent:contained,
@@ -901,7 +920,7 @@ file sub stix-cyber-observable-object,
 
 #### SCO EXTENSIONS ####
 
-SCO-extension sub entity,
+SCO-extension sub stix_sco_sub_object,
 	plays extensions:extension;
 
 	archive-ext sub SCO-extension,
@@ -910,15 +929,15 @@ SCO-extension sub entity,
 		plays archive-extension:an-archive;
 
 	ntfs-ext sub SCO-extension,
-		owns sid, 
+		owns sid,
 		plays alt-data-streams:ntfs-ext,
 		plays ntfs-extension:ntfs;
 
-	alternate-data-stream sub SCO-extension, 
-		owns name, 
-		plays hashes:owner, 
-		owns size, 
-		plays alt-data-streams:alt-data-stream; 
+	alternate-data-stream sub SCO-extension,
+		owns name,
+		plays hashes:owner,
+		owns size,
+		plays alt-data-streams:alt-data-stream;
 
 	pdf-ext sub SCO-extension,
 		owns version,
@@ -938,15 +957,15 @@ SCO-extension sub entity,
 		owns image-width,
 		owns bits-per-pixel,
 		plays EXIF-tags:image,
-		plays raster-image-extension:image; 
-	
+		plays raster-image-extension:image;
+
 	EXIF-value sub stix-attribute-string;
 	EXIF-key sub stix-attribute-string,
 		owns EXIF-value,
 		plays EXIF-tags:info;
 
 
-	windows-pebinary-ext sub SCO-extension, 	
+	windows-pebinary-ext sub SCO-extension,
 		owns pe-type,
 		owns imphash,
 		owns machine-hex,
@@ -956,12 +975,12 @@ SCO-extension sub entity,
 		owns number-of-symbols,
 		owns size-of-optional-header,
 		owns characteristics-hex,
-		plays hashes:owner, 
+		plays hashes:owner,
 		plays optional-headers:pebinary,
 		plays sections:pebinary,
 		plays windows-pebinary-extension:pebinary;
 
-	windows-pe-optional-header-type sub SCO-extension, 
+	windows-pe-optional-header-type sub SCO-extension,
 		owns magic-hex,
 		owns major-linker-version,
 		owns minor-linker-version,
@@ -991,56 +1010,61 @@ SCO-extension sub entity,
 		owns size-of-heap-reserve,
 		owns size-of-heap-commit,
 		owns loader-flags-hex,
-		owns number-of-rva-and-sizes, 
+		owns number-of-rva-and-sizes,
 		plays hashes:owner,
 		plays optional-headers:optional-header;
 
 	windows-pe-section sub SCO-extension,
-		owns name, 
-		owns size, 
-		owns entropy, 
-		plays hashes:owner, 
+		owns name,
+		owns size,
+		owns entropy,
+		plays hashes:owner,
 		plays sections:pe-section;
 
 # 6.8 IPv4 Address
 ipv4-addr sub stix-cyber-observable-object,
-	owns stix-value, 
-	plays resolves:resolves-to,
-	plays resolves:resolve,
+	owns stix-value,
+	plays resolves-to-ref:to-ref,
+	plays resolves-to-ref:from-ref,
 	plays belongs-to-autonomous:belonged,
 	plays communicates-with:communicated,
 	plays traffic-src:source,
 	plays traffic-dst:destination,
-	plays consist:consisted;
+	#plays consist:consisted,
+	plays resolve-to:resolves-from,
+	plays resolve-to:resolves-to;
 
 # 6.9 IPv6 Address
 ipv6-addr sub stix-cyber-observable-object,
-	owns stix-value, 
-	plays resolves:resolves-to,
-	plays resolves:resolve,
-	plays belongs-to-autonomous:belonged,	
+	owns stix-value,
+	plays resolves-to-ref:to-ref,
+	plays resolves-to-ref:from-ref,
+	plays belongs-to-autonomous:belonged,
 	plays communicates-with:communicated,
 	plays traffic-src:source,
 	plays traffic-dst:destination,
-	plays consist:consisted;
+	#plays consist:consisted,
+	plays resolve-to:resolves-from,
+	plays resolve-to:resolves-to;
 
 # 6.10 MAC Address
 mac-addr sub stix-cyber-observable-object,
 	owns stix-value,
-	plays resolves:resolves-to,
+	plays resolves-to-ref:to-ref,
 	plays traffic-src:source,
-	plays traffic-dst:destination;
+	plays traffic-dst:destination,
+	plays resolve-to:resolves-to;
 
 # 6.11 Mutex
 mutex sub stix-cyber-observable-object,
-	owns name; 
+	owns name;
 
-# 6.12 Network Traffic - This should really be a relation? 
+# 6.12 Network Traffic - This should really be a relation?
 network-traffic sub stix-cyber-observable-object,
-	owns start, 
+	owns start,
 	owns end,
-	owns is-active, 
-	owns protocols, 
+	owns is-active,
+	owns protocols,
 	owns src-port,
 	owns dst-port,
 	owns src-byte-count,
@@ -1051,7 +1075,7 @@ network-traffic sub stix-cyber-observable-object,
 	plays payload-src:traffic,
 	plays traffic-dst:traffic,
 	plays payload-dst:traffic,
-	
+
 	plays encapsulate:container,
 	plays encapsulate:contained,
 	plays encapsulated:container,
@@ -1091,11 +1115,11 @@ network-traffic sub stix-cyber-observable-object,
 		owns icmp-code-hex,
 		plays icmp-extension:icmp;
 
-	socket-ext sub SCO-extension, 
-		owns address-family, 
+	socket-ext sub SCO-extension,
+		owns address-family,
 		owns is-blocking,
 		owns is-listening,
-		owns socket-type, 
+		owns socket-type,
 		owns socket-descriptor,
 		owns socket-handle,
 		plays socket-options:socket,
@@ -1111,9 +1135,9 @@ network-traffic sub stix-cyber-observable-object,
 		owns dst-flags-hex,
 		plays tcp-extension:tcp;
 
-# 6.13 Process 
+# 6.13 Process
 process sub stix-cyber-observable-object,
-	owns is-hidden, 
+	owns is-hidden,
 	owns pid,
 	owns created-time,
 	owns cwd,
@@ -1135,7 +1159,7 @@ process sub stix-cyber-observable-object,
 		owns environment-value,
 		plays environment-variables:env-variable;
 
-	
+
 
 #### SCO EXTENSIONS Pt 3 ####
 	windows-process-ext sub SCO-extension,
@@ -1153,7 +1177,7 @@ process sub stix-cyber-observable-object,
 		owns startup-value,
 		plays startup-info:info;
 
-	windows-service-ext sub SCO-extension, 
+	windows-service-ext sub SCO-extension,
 		owns service-name,
 		owns description,
 		owns display-name,
@@ -1167,14 +1191,14 @@ process sub stix-cyber-observable-object,
 
 # 6.14 Software
 software sub stix-cyber-observable-object,
-	owns name, 
-	owns cpe, 
+	owns name,
+	owns cpe,
 	owns swid,
 	owns language,
 	owns vendor,
 	owns version;
 
-		
+
 
 # 6.15 URL
 url sub stix-cyber-observable-object,
@@ -1201,7 +1225,7 @@ user-account sub stix-cyber-observable-object,
 	plays belongs:belongs-to,
 	plays unix-account-extension:account;
 
-	unix-account-ext sub SCO-extension, 
+	unix-account-ext sub SCO-extension,
 		owns gid,
 		owns unix-group,
 		owns home-dir,
@@ -1209,23 +1233,23 @@ user-account sub stix-cyber-observable-object,
 		plays unix-account-extension:unix;
 
 # 6.17 Windows Registry Key
-windows-registry-key sub stix-cyber-observable-object, 
-	owns attribute-key, 
-	owns modified-time, 
-	owns number-subkeys, 
+windows-registry-key sub stix-cyber-observable-object,
+	owns attribute-key,
+	owns modified-time,
+	owns number-subkeys,
 	plays reg-val:reg-key,
 	plays user-created-by:created;
 
-windows-registry-value-type sub stix-cyber-observable-object, 
-	owns name, 
+windows-registry-value-type sub stix-cyber-observable-object,
+	owns name,
 	owns data,
 	owns data-type,
 	plays reg-val:reg-value;
 
 # 6.18 X.509 Certificate
-x509-certificate sub stix-cyber-observable-object, 
-	owns is-self-signed, 
-	plays hashes:owner, 
+x509-certificate sub stix-cyber-observable-object,
+	owns is-self-signed,
+	plays hashes:owner,
 	owns version,
 	owns serial-number,
 	owns signature-algorithm,
@@ -1257,26 +1281,30 @@ x509-certificate sub stix-cyber-observable-object,
 		owns policy-mappings,
 		plays v3-extensions:v3-extension;
 
-	
+
 
 ##### 7 STIX™ Meta Objects #####
+stix-meta-object sub stix-object,
+    abstract,
+    owns created,
+    owns modified;
 
-# 7.1 Language Content 
+# 7.1 Language Content
 
 # owns spec-version
 
 # 7.2 Data markings - this describes how data can be used/shared
 
 marking-definition sub stix-meta-object,
-	owns name, 
+	owns name,
 	owns spec-version,
 	plays created-by:created,
 	plays data-marking:marking,
 	plays object-marking:marked,
 	plays external-references:referencing;
 
-	statement-marking sub marking-definition, 
-		owns statement; 
+	statement-marking sub marking-definition,
+		owns statement;
 
 	tlp-marking sub marking-definition;
 		tlp-white sub tlp-marking;
@@ -1298,21 +1326,21 @@ embedded sub relation,
 	relates pointed-to, # the object being pointed to
 	relates owner; # the current object
 
-	data-marking sub embedded, 
+	data-marking sub embedded,
 		relates marking as pointed-to,
 		relates marked as owner;
 
-		object-marking sub data-marking; 
+		object-marking sub data-marking;
 
 		granular-marking sub data-marking,
 			relates object;
 
-	created-by sub embedded, 
+	created-by sub embedded,
 		relates created as owner,
 		relates creator as pointed-to;
 
-	sample sub embedded, 
-		relates sample-for as owner, 
+	sample sub embedded,
+		relates sample-for as owner,
 		relates sco-sample as pointed-to;
 
 		malware-sample sub sample;
@@ -1321,9 +1349,9 @@ embedded sub relation,
 	kill-chain-usage sub embedded,
 		relates kill-chain-used as owner,
 		relates kill-chain-using as pointed-to;
-		
 
-	external-references sub embedded, 
+
+	external-references sub embedded,
 		relates referenced as owner,
 		relates referencing as pointed-to;
 
@@ -1335,10 +1363,10 @@ embedded sub relation,
 
 		operating-system sub malware-env;   # operating_system_ref
 		installed-software sub malware-env; # installed_software_refs
-		host-vm-ref sub malware-env;            # host_vm_ref 
-		captured-objects sub malware-env;   # analysis_sco_refs 
+		host-vm-ref sub malware-env;            # host_vm_ref
+		captured-objects sub malware-env;   # analysis_sco_refs
 
-	obj-ref sub embedded, 
+	obj-refs sub embedded,
 		relates referred as pointed-to,
 		relates object as owner;
 
@@ -1351,20 +1379,20 @@ embedded sub relation,
 		# network traffic enxapsulate
 		encapsulate sub orig-container;
 
-	
+
 	# reverse file or directory containing relation
 	orig-contained sub embedded,
 		relates contained as owner,
 		relates container as pointed-to;
-		
+
 		directory-parent sub orig-contained;
 		# network-traffic encapsulated-by
 		encapsulated sub orig-contained;
 
 	# IP Address or Domain Name
-	resolves sub embedded,
-		relates resolve as owner,
-		relates resolves-to as pointed-to;
+	resolves-to-ref sub embedded,
+		relates from-ref as owner,
+		relates to-ref as pointed-to;
 
 	# User Account email address belongs to
 	belongs sub embedded,
@@ -1375,16 +1403,16 @@ embedded sub relation,
 	belongs-to-autonomous sub belongs;
 
 	# Email specific relations
-	body-multipart sub embedded, 
+	body-multipart sub embedded,
 		relates email as owner,
 		relates mime-part as pointed-to;
- 
-	raw-email-references sub embedded, 
+
+	raw-email-references sub embedded,
 		relates email as owner,
 		relates binary as pointed-to;
 
-	
-	email-connection sub embedded, 
+
+	email-connection sub embedded,
 		relates email as owner,
 		relates email-address as pointed-to;
 
@@ -1393,7 +1421,7 @@ embedded sub relation,
 		to-email sub email-connection;
 		cc-email sub email-connection;
 		bcc-email sub email-connection;
-	
+
 	additional-header sub embedded,
 		relates email as owner,
 		relates item as pointed-to;
@@ -1403,50 +1431,50 @@ embedded sub relation,
 		relates non-textual as pointed-to;
 
 	# file relation
-	content-file sub embedded, 
+	content-file sub embedded,
 		relates containing-file as owner,
 		relates content as pointed-to;
 
 	# network-traffic SCO,
-	traffic-src sub embedded, 
+	traffic-src sub embedded,
 		relates traffic as owner,
 		relates source as pointed-to;
 
 		payload-src sub traffic-src,
 			relates payload as source;
 
-	traffic-dst sub embedded, 
+	traffic-dst sub embedded,
 		relates traffic as owner,
 		relates destination as pointed-to;
 
 		payload-dst sub traffic-dst,
 			relates payload as destination;
 
-	IPFIX-store sub embedded, 
+	IPFIX-store sub embedded,
 		relates traffic as owner,
 		relates item as pointed-to;
 
 	# HTTP Request Extension
-	HTTP_Req_Headers sub embedded, 
+	HTTP_Req_Headers sub embedded,
 		relates traffic as owner,
-		relates item as pointed-to;	
+		relates item as pointed-to;
 
 	# Process Object
-	environment-variables sub embedded, 
+	environment-variables sub embedded,
 		relates process as owner,
 		relates env-variable as pointed-to;
 
-	
+
 	open-connections sub embedded,
 		relates opened-connection as pointed-to,
 		relates process as owner;
 
-	
+
 	user-created-by sub embedded,
 		relates created as owner,
 		relates creator as pointed-to;
 
-	process-image sub embedded,	
+	process-image sub embedded,
 		relates executed-image as pointed-to,
 		relates process as owner;
 
@@ -1463,13 +1491,13 @@ embedded sub relation,
 		relates reg-key as owner,
 		relates reg-value as pointed-to;
 
-	
 
-		
+
+
 
 	# Extension-Type Embedded Relations
 	#-----------------------------------------------------------------------------------------------------------------------
-	extensions sub embedded, 
+	extensions sub embedded,
 		relates sco as owner,
 		relates extension as pointed-to;
 
@@ -1496,7 +1524,7 @@ embedded sub relation,
 		raster-image-extension sub extensions,
 			relates file as sco,
 			relates image as extension;
-			
+
 		EXIF-tags sub extensions,
 			relates image as sco,
 			relates info as extension;
@@ -1504,13 +1532,13 @@ embedded sub relation,
 		windows-pebinary-extension sub extensions,
 			relates file as sco,
 			relates pebinary as extension;
-		
-		optional-headers sub extensions, 
+
+		optional-headers sub extensions,
 			relates pebinary as sco,
 			relates optional-header as extension;
 
-		
-		sections sub extensions, 
+
+		sections sub extensions,
 			relates pe-section as extension,
 			relates pebinary as sco;
 
@@ -1519,7 +1547,7 @@ embedded sub relation,
 			relates traffic as sco,
 			relates request as extension;
 
-		HTTP-header sub extensions, 
+		HTTP-header sub extensions,
 			relates request as sco,
 			relates header as extension;
 
@@ -1536,7 +1564,7 @@ embedded sub relation,
 			relates traffic as sco,
 			relates socket as extension;
 
-		socket-options sub extensions, 
+		socket-options sub extensions,
 			relates socket as sco,
 			relates option as extension;
 
@@ -1548,17 +1576,17 @@ embedded sub relation,
 		windows-process-extension sub extensions,
 			relates process as sco,
 			relates win-process as extension;
-		
-		startup-info sub extensions, 
+
+		startup-info sub extensions,
 			relates process as sco,
 			relates info as extension;
 
-		# windows service extension		
+		# windows service extension
 		windows-service-extension sub extensions,
 			relates process as sco,
 			relates win-service as extension;
 
-		service-dll sub extensions, 
+		service-dll sub extensions,
 			relates loaded-dll as extension,
 			relates process as sco;
 
@@ -1579,24 +1607,24 @@ embedded sub relation,
 
 
 
-# 3.7 Common Relationships 
+# 3.7 Common Relationships
 # These are relation types that are shared by SDOs and SCOs
 
-derivation sub relation, 
+derivation sub relation,
 	relates derived-from,
 	relates deriving;
 
-duplicate sub relation, 
-	relates duplicated-object; 
+duplicate sub relation,
+	relates duplicated-object;
 
 relatedness sub relation,
-	relates related-to; 
+	relates related-to;
 
-## INFERRED RELATIONS ## 
+## INFERRED RELATIONS ##
 
-kill-chain sub relation, 
-	owns kill-chain-name, 
-	relates participating-kill-chain-phase; 
+kill-chain sub relation,
+	owns kill-chain-name,
+	relates participating-kill-chain-phase;
 
 inferred-mitigation sub mitigates;
 
@@ -1611,7 +1639,6 @@ stix-attribute-string sub attribute, value string, abstract,
 	stix-value sub stix-attribute-string;
 	object-marking-refs sub stix-attribute-string;
 	labels sub stix-attribute-string;
-	confidence sub stix-attribute-string;
 	langs sub stix-attribute-string;
 	source-name sub stix-attribute-string;
 	description sub stix-attribute-string;
@@ -1619,54 +1646,54 @@ stix-attribute-string sub attribute, value string, abstract,
 	external-id sub stix-attribute-string;
 	hash-value sub stix-attribute-string;
 
-	kill-chain-name sub stix-attribute-string; 
-	phase-name sub stix-attribute-string; 
-	name sub stix-attribute-string; 
-	sector sub stix-attribute-string; 
-	contact-information sub stix-attribute-string; 
-	indicator-type sub stix-attribute-string; 
-	pattern sub stix-attribute-string; 
-	pattern-type sub stix-attribute-string; 
-	pattern-version sub stix-attribute-string; 
-	
+	kill-chain-name sub stix-attribute-string;
+	phase-name sub stix-attribute-string;
+	name sub stix-attribute-string;
+	sector sub stix-attribute-string;
+	contact-information sub stix-attribute-string;
+	indicator-type sub stix-attribute-string;
+	pattern sub stix-attribute-string;
+	pattern-type sub stix-attribute-string;
+	pattern-version sub stix-attribute-string;
 
-	malware-types sub stix-attribute-string; 
-	architecture-execution-envs sub stix-attribute-string; 
-	implementation-languages sub stix-attribute-string; 
-	capabilities sub stix-attribute-string; 
-	sample-refs sub stix-attribute-string; 
 
-	 
-	object sub stix-attribute-string; 
+	malware-types sub stix-attribute-string;
+	architecture-execution-envs sub stix-attribute-string;
+	implementation-languages sub stix-attribute-string;
+	capabilities sub stix-attribute-string;
+	sample-refs sub stix-attribute-string;
 
-	threat-actor-type sub stix-attribute-string; 
-	aliases sub stix-attribute-string; 
-	stix-role sub stix-attribute-string; 
-	goals sub stix-attribute-string; 
-	sophistication sub stix-attribute-string; 
-	resource-level sub stix-attribute-string; 
-	primary-motivation sub stix-attribute-string; 
-	secondary-motivations sub stix-attribute-string; 
-	personal-motivations sub stix-attribute-string; 
+
+	object sub stix-attribute-string;
+
+	threat-actor-type sub stix-attribute-string;
+	aliases sub stix-attribute-string;
+	stix-role sub stix-attribute-string;
+	goals sub stix-attribute-string;
+	sophistication sub stix-attribute-string;
+	resource-level sub stix-attribute-string;
+	primary-motivation sub stix-attribute-string;
+	secondary-motivations sub stix-attribute-string;
+	personal-motivations sub stix-attribute-string;
 	identity-class sub stix-attribute-string;
 
-	summary sub stix-attribute-string; 
-	spec-version sub stix-attribute-string; 
-	attribute-key sub stix-attribute-string; 
-	value sub stix-attribute-string; 
-	number-subkeys sub stix-attribute-string; 
+	summary sub stix-attribute-string;
+	spec-version sub stix-attribute-string;
+	attribute-key sub stix-attribute-string;
+	value sub stix-attribute-string;
+	number-subkeys sub stix-attribute-string;
 	objective sub stix-attribute-string;
 	statement sub stix-attribute-string;
-	action sub stix-attribute-string;  
+	action sub stix-attribute-string;
 	tool-type sub stix-attribute-string; # OPEN VOCAB?
-	tool-version sub stix-attribute-string; 
+	tool-version sub stix-attribute-string;
 
 	region sub stix-attribute-string; # open vocab TODO (10.21 Region Vocabulary)
-	country sub stix-attribute-string; 
-	administrative-area sub stix-attribute-string; 
-	city sub stix-attribute-string; 
-	street-address sub stix-attribute-string; 
-	postal-code sub stix-attribute-string; 
+	country sub stix-attribute-string;
+	administrative-area sub stix-attribute-string;
+	city sub stix-attribute-string;
+	street-address sub stix-attribute-string;
+	postal-code sub stix-attribute-string;
 	infrastructure-types sub stix-attribute-string;
 	context sub stix-attribute-string;
 
@@ -1711,7 +1738,7 @@ stix-attribute-string sub attribute, value string, abstract,
 	IPFIX-value sub stix-attribute-string;
 	IPFIX-key sub stix-attribute-string;
 	relationship-type sub stix-attribute-string;
-	
+
 
 	content-disposition sub stix-attribute-string;
 	sid sub stix-attribute-string;
@@ -1743,7 +1770,7 @@ stix-attribute-string sub attribute, value string, abstract,
 	dst-flags-hex sub stix-attribute-string;
 
 	checksum-hex sub stix-attribute-string;
-	subsystem-hex sub stix-attribute-string;	
+	subsystem-hex sub stix-attribute-string;
 	cwd sub stix-attribute-string;
 	command-line sub stix-attribute-string;
 	priority sub stix-attribute-string;
@@ -1801,6 +1828,7 @@ stix-attribute-integer sub attribute, value long, abstract,
 	image-height sub stix-attribute-integer;
 	image-width sub stix-attribute-integer;
 	bits-per-pixel sub stix-attribute-integer;
+	confidence sub stix-attribute-integer;
 
 	number-of-sections sub stix-attribute-integer;
 	number-of-symbols sub stix-attribute-integer;
