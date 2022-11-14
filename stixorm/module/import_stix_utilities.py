@@ -11,10 +11,11 @@ from .definitions.stix21 import stix_models
 import logging
 logger = logging.getLogger(__name__)
 
-#---------------------------------------------------
+
+# ---------------------------------------------------
 # 1.5) Sub Object Methods for adding common standard properties
 #                -  e.g. stix-type, stix-id, name, description etc.
-#--------------------------------------------------
+# --------------------------------------------------
 
 
 def clean_props(total_props):
@@ -27,10 +28,10 @@ def clean_props(total_props):
         total_props []:
     """
     # remove the properties that are mistakes
-    
+
     return total_props
 
-  
+
 def add_property_to_typeql(prop, obj_tql, obj, prop_var_list):
     """
         Add a property by typeql
@@ -54,38 +55,38 @@ def add_property_to_typeql(prop, obj_tql, obj, prop_var_list):
         return type_ql, type_ql_props, prop_var_list
     elif prop == "summary" and obj.summary == False:
         return type_ql, type_ql_props, prop_var_list
-    
+
     # or else add the property to the typeql statement
     if isinstance(obj[prop], list):
         # if the property is a list, add each item to the typeql statement
         for i, instance in enumerate(obj[prop]):
-            prop_var_dict={}
+            prop_var_dict = {}
             # import statements for each of the list items
             prop_var = '$' + prop + str(i)
-            type_ql += ',\n has ' + tql_prop_name + ' ' + prop_var 
-            type_ql_props += '\n ' + prop_var + ' '  + val_tql(instance) + ';'
+            type_ql += ',\n has ' + tql_prop_name + ' ' + prop_var
+            type_ql_props += '\n ' + prop_var + ' ' + val_tql(instance) + ';'
             prop_var_dict["prop_var"] = prop_var
             prop_var_dict["prop"] = prop
             prop_var_dict["index"] = i
             prop_var_list.append(prop_var_dict)
     else:
-        prop_var_dict={}
+        prop_var_dict = {}
         # import statements for a single value
         prop_var = '$' + tql_prop_name
-        type_ql += ',\n has ' + tql_prop_name + ' ' + prop_var 
-        type_ql_props += '\n ' + prop_var + ' '  + val_tql(obj[prop]) + ';'
+        type_ql += ',\n has ' + tql_prop_name + ' ' + prop_var
+        type_ql_props += '\n ' + prop_var + ' ' + val_tql(obj[prop]) + ';'
         prop_var_dict["prop_var"] = prop_var
         prop_var_dict["prop"] = prop
         prop_var_dict["index"] = -1
-        prop_var_list.append(prop_var_dict)  
-        
-    return type_ql, type_ql_props, prop_var_list
-  
+        prop_var_list.append(prop_var_dict)
 
-#---------------------------------------------------
+    return type_ql, type_ql_props, prop_var_list
+
+
+# ---------------------------------------------------
 # 1.6) Sub Object Methods for adding embedded structures
 #                -  e.g. hasehs, kill-chain-phases, created_by, external_references, object_marking_refs etc.
-#--------------------------------------------------
+# --------------------------------------------------
 # Giant Switch statement to add the embedded relations to the typeql statement
 
 def add_relation_to_typeql(rel, obj, obj_var, prop_var_list=[], inc=-1):
@@ -102,13 +103,14 @@ def add_relation_to_typeql(rel, obj, obj_var, prop_var_list=[], inc=-1):
         match: the typeql match string
         insert: the typeql insert string
     """
+    dep_list = []
     if rel == "granular_markings":
-        match, insert = granular_markings( rel, obj[rel], obj_var, prop_var_list)
-    
+        match, insert = granular_markings(rel, obj[rel], obj_var, prop_var_list)
+
     # hashes type
     elif (rel == "hashes"
           or rel == "file_header_hashes"):
-        match, insert = hashes( rel, obj[rel], obj_var)
+        match, insert = hashes(rel, obj[rel], obj_var)
 
     # insert key value store
     elif (rel == "additional_header_fields"
@@ -119,19 +121,21 @@ def add_relation_to_typeql(rel, obj, obj_var, prop_var_list=[], inc=-1):
           or rel == "options"
           or rel == "environment_variables"
           or rel == "startup_info"):
-        match, insert = key_value_store( rel, obj[rel], obj_var)
-    
+        match, insert = key_value_store(rel, obj[rel], obj_var)
+
     # insert list of object relation
     elif (rel == "body_multipart"
           or rel == "external_references"
           or rel == "kill_chain_phases"
           or rel == "sections"
           or rel == "alternate_data_streams"
-          or rel == "values"):
-        match, insert = list_of_object( rel, obj[rel], obj_var)
-    
+          or rel == "values"
+          or rel == "x_mitre_contents"):
+        match, insert, dep_list = list_of_object(rel, obj[rel], obj_var)
+
     # insert embedded relations based on stix-id
     elif (rel == "object_refs"
+          or rel == "object_ref"
           or rel == "created_by_ref"
           or rel == "object_marking_refs"
           or rel == "sample_refs"
@@ -166,36 +170,38 @@ def add_relation_to_typeql(rel, obj, obj_var, prop_var_list=[], inc=-1):
           or rel == "image_ref"
           or rel == "parent_ref"
           or rel == "child_refs"
-          or rel == "service_dll_refs"): 
-        match, insert = embedded_relation( rel, obj[rel], obj_var, inc)
-    
+          or rel == "service_dll_refs"
+          or rel == "x_mitre_modified_by_ref"
+          or rel == "x_mitre_data_source_ref"):
+        match, insert, dep_list = embedded_relation(rel, obj[rel], obj_var, inc)
+
     # insert plain sub-object with relation
     elif (rel == "x509_v3_extensions"
           or rel == "optional_header"):
-        match, insert = load_object( rel, obj[rel], obj_var)
-        
+        match, insert, dep_list = load_object(rel, obj[rel], obj_var)
+
     # insert  SCO Extensions here, a possible dict of sub-objects
     elif rel == "extensions":
-        match, insert = extensions( rel, obj[rel], obj_var)
-    
+        match, insert, dep_list = extensions(rel, obj[rel], obj_var)
+
     # ignore the following relations as they are already processed, for Relationships, Sightings and Extensions
-    elif (rel == "sighting_of_ref" 
-          or rel == "observed_data_refs" 
+    elif (rel == "sighting_of_ref"
+          or rel == "observed_data_refs"
           or rel == "where_sighted_refs"
-          or rel == "source_ref" 
+          or rel == "source_ref"
           or rel == "target_ref"):
         match = insert = ''
-    
+
     else:
         logger.error(f'relation type not known, rel -> {rel}')
         match = insert = ""
-        
-    return match, insert
+
+    return match, insert, dep_list
 
 
-#---------------------------------------------------
+# ---------------------------------------------------
 # Methods for adding the embedded structures to the typeql statement
-#--------------------------------------------------
+# --------------------------------------------------
 # generic methods
 
 
@@ -212,18 +218,19 @@ def extensions(prop_name, prop_dict, parent_var):
         insert: the typeql insert string
     """
     match = insert = ''
+    dep_list = []
     # for each key in the dict (extension type)
-    #logger.debug('--------------------- extensions ----------------------------')
+    # logger.debug('--------------------- extensions ----------------------------')
     for ext_type in prop_dict:
         for ext_type_ql in stix_models["ext_typeql_dict_list"]:
             if ext_type == ext_type_ql["stix"]:
-                match2, insert2 = load_object(ext_type, prop_dict[ext_type], parent_var)
+                match2, insert2, dep_list2 = load_object(ext_type, prop_dict[ext_type], parent_var)
                 match = match + match2
                 insert = insert + insert2
+                dep_list = dep_list + dep_list2
                 break
-        
-    return match, insert
 
+    return match, insert, dep_list
 
 
 def load_object(prop_name, prop_dict, parent_var):
@@ -240,7 +247,7 @@ def load_object(prop_name, prop_dict, parent_var):
     """
     match = insert = type_ql = type_ql_props = ''
     # as long as it is predefined, load the object
-    #logger.debug('------------------- load object ------------------------------')
+    # logger.debug('------------------- load object ------------------------------')
     for prop_type in stix_models["ext_typeql_dict_list"]:
         if prop_name == prop_type["stix"]:
             tot_prop_list = [tot for tot in prop_dict.keys()]
@@ -252,35 +259,36 @@ def load_object(prop_name, prop_dict, parent_var):
             rel_pointed_to = prop_type["pointed-to"]
             type_ql += ' ' + obj_var + ' isa ' + prop_type["object"]
             # Split them into properties and relations
-            properties, relations = split_on_activity_type(tot_prop_list, obj_tql)     
+            properties, relations = split_on_activity_type(tot_prop_list, obj_tql)
             prop_var_list = []
+            dep_list = []
             for prop in properties:
                 # split off for properties processing
-                type_ql2, type_ql_props2, prop_var_list = add_property_to_typeql(prop, obj_tql, prop_dict, prop_var_list)
+                type_ql2, type_ql_props2, prop_var_list = add_property_to_typeql(prop, obj_tql, prop_dict,
+                                                                                 prop_var_list)
                 # then add them all together
                 type_ql += type_ql2
-                type_ql_props += type_ql_props2        
-            # add a terminator on the end of the insert statement
-            type_ql += ";\n" +  type_ql_props + "\n\n"
-            
+                type_ql_props += type_ql_props2
+                # add a terminator on the end of the insert statement
+            type_ql += ";\n" + type_ql_props + "\n\n"
+
             # add each of the relations to the match and insert statements
-            for rel in relations:        
+            for rel in relations:
                 # split off for relation processing
-                match2, insert2 = add_relation_to_typeql(rel, prop_dict, obj_var, prop_var_list)
-                # then add it back together    
-                match = match +  match2
-                insert = insert + "\n" + insert2                   
-                
+                match2, insert2, dep_list2 = add_relation_to_typeql(rel, prop_dict, obj_var, prop_var_list)
+                # then add it back together
+                match = match + match2
+                insert = insert + "\n" + insert2
+                dep_list = dep_list + dep_list2
+
             # finally, connect the local object to the parent object
-            type_ql += ' ' + rel_var + ' (' + rel_owner + ':' + parent_var 
+            type_ql += ' ' + rel_var + ' (' + rel_owner + ':' + parent_var
             type_ql += ', ' + rel_pointed_to + ':' + obj_var + ')'
             type_ql += ' isa ' + reln + ';\n'
-            break            
-        
-    insert =  type_ql + "\n" + insert
-    return match, insert
+            break
 
-
+    insert = type_ql + "\n" + insert
+    return match, insert, dep_list
 
 
 def list_of_object(prop_name, prop_value_list, parent_var):
@@ -303,8 +311,9 @@ def list_of_object(prop_name, prop_value_list, parent_var):
             role_pointed = config["pointed_to"]
             typeql_obj = config["object"]
             break
-        
+
     lod_list = []
+    dep_list = []
     match = rel_insert = rel_match = insert = ''
     for i, dict_instance in enumerate(prop_value_list):
         lod_var = '$' + typeql_obj + str(i)
@@ -313,22 +322,24 @@ def list_of_object(prop_name, prop_value_list, parent_var):
         for key in dict_instance:
             typeql_prop = obj_props_tql[key]
             if typeql_prop == '':
-                rel_match2, rel_insert2 = add_relation_to_typeql(key, dict_instance, lod_var, [], i)    
+                rel_match2, rel_insert2, dep_list2 = add_relation_to_typeql(key, dict_instance, lod_var, [], i)
                 rel_insert += rel_insert2
-                rel_match += rel_match2                            
+                rel_match += rel_match2
+                dep_list = dep_list + dep_list2
             else:
                 insert += ',\n has ' + typeql_prop + ' ' + val_tql(dict_instance[key])
         insert += ';\n'
-        
-    insert += '\n $' + rel_typeql + ' (' + role_owner + ':' + parent_var 
-    for lod_var in lod_list:
-        insert +=  ', ' + role_pointed + ':' + lod_var
-        
-    insert += ') isa ' + rel_typeql  + ';\n' + rel_insert
-    match += rel_match
-    return match, insert
 
-def key_value_store( prop, prop_value_dict, obj_var):
+    insert += '\n $' + rel_typeql + ' (' + role_owner + ':' + parent_var
+    for lod_var in lod_list:
+        insert += ', ' + role_pointed + ':' + lod_var
+
+    insert += ') isa ' + rel_typeql + ';\n' + rel_insert
+    match += rel_match
+    return match, insert, dep_list
+
+
+def key_value_store(prop, prop_value_dict, obj_var):
     """
         Create the Typeql for the key-value store sub object
     Args:
@@ -348,7 +359,7 @@ def key_value_store( prop, prop_value_dict, obj_var):
             d_key = config["key"]
             d_value = config["value"]
             break
-    
+
     match = ''
     insert = '\n'
     field_var_list = []
@@ -360,17 +371,17 @@ def key_value_store( prop, prop_value_dict, obj_var):
         if isinstance(a_value, list):
             for j, n in enumerate(a_value):
                 value_var = ' $' + d_value + str(j)
-                insert += key_var + ' ' + 'has ' + d_value +  ' "' + str(n) + '";\n'
+                insert += key_var + ' ' + 'has ' + d_value + ' "' + str(n) + '";\n'
         else:
             value_var = ' $' + d_value + str(i)
-            insert += key_var + ' ' + 'has ' + d_value + ' "' +  str(a_value) + '";\n'
-    
+            insert += key_var + ' ' + 'has ' + d_value + ' "' + str(a_value) + '";\n'
+
     insert += ' $' + rel_typeql + ' (' + role_owner + ':' + obj_var
     for var in field_var_list:
         insert += ', ' + role_pointed + ':' + var
     insert += ') isa ' + rel_typeql + ';\n\n'
     return match, insert
-  
+
 
 # specific methods
 def hashes(prop_name, prop_dict, parent_var):
@@ -391,18 +402,19 @@ def hashes(prop_name, prop_dict, parent_var):
         hash_var = '$hash' + str(i)
         hash_var_list.append(hash_var)
         if key in stix_models["hash_typeql_dict"]:
-            insert += ' ' + hash_var + ' isa ' + stix_models["hash_typeql_dict"][key] + ', has hash-value ' + val_tql(prop_dict[key]) + ';\n'        
+            insert += ' ' + hash_var + ' isa ' + stix_models["hash_typeql_dict"][key] + ', has hash-value ' + val_tql(
+                prop_dict[key]) + ';\n'
         else:
-          logger.error(f'Unknown hash type {key}')
-          
+            logger.error(f'Unknown hash type {key}')
+
     # insert the hash objects into the hashes relation with the parent object
     insert += '\n $hash_rel (owner:' + parent_var
     for hash_var in hash_var_list:
-         insert += ', pointed-to:' + hash_var 
-         
-    insert +=  ') isa hashes;\n'    
+        insert += ', pointed-to:' + hash_var
+
+    insert += ') isa hashes;\n'
     return match, insert
-  
+
 
 def granular_markings(prop_name, prop_value_List, parent_var, prop_var_list):
     """
@@ -429,9 +441,9 @@ def granular_markings(prop_name, prop_value_List, parent_var, prop_var_list):
         for selector in prop_list:
             selector_var = get_selector_var(selector, prop_var_list)
             insert += ', marked:' + selector_var
-            
+
         insert += ') isa granular-marking;\n'
-    
+
     return match, insert
 
 
@@ -452,19 +464,19 @@ def get_selector_var(selector, prop_var_list):
     else:
         selector = selector
         index = -1
-        
-    #logger.debug(f'selector after processing -> {selector}, index after procesing -> {index}')
+
+    # logger.debug(f'selector after processing -> {selector}, index after procesing -> {index}')
     for prop_var_dict in prop_var_list:
         if selector == prop_var_dict['prop'] and index == prop_var_dict['index']:
             selector_var = prop_var_dict['prop_var']
             break
-        
+
     return selector_var
 
 
-#---------------------------------------------------
+# ---------------------------------------------------
 #        EMBEDDED RELATION METHODS
-#---------------------------------------------------
+# ---------------------------------------------------
 # object_refs
 # sample_refs
 # sample_ref
@@ -487,20 +499,22 @@ def embedded_relation(prop, prop_value, obj_var, inc):
         insert: the typeql insert string
     """
     for ex in stix_models["embedded_relations_typeql"]:
-      if ex["rel"] == prop:
-        owner = ex["owner"]
-        pointed_to = ex["pointed-to"]
-        relation = ex["typeql"]
-        break
-    
+        if ex["rel"] == prop:
+            owner = ex["owner"]
+            pointed_to = ex["pointed-to"]
+            relation = ex["typeql"]
+            break
+
     prop_var_list = []
+    dep_list = []
     match = ''
     if inc == -1:
         inc_add = ''
     else:
         inc_add = str(inc)
     # if the prop_value is a list, then match in each item
-    if isinstance(prop_value, list):        
+    if isinstance(prop_value, list):
+        dep_list = prop_value
         for i, prop_v in enumerate(prop_value):
             prop_type = prop_v.split('--')[0]
             if prop_type == 'relationship':
@@ -510,19 +524,20 @@ def embedded_relation(prop, prop_value, obj_var, inc):
             match += ' ' + prop_var + ' isa ' + prop_type + ', has stix-id ' + '"' + prop_v + '";\n'
     # else, match in the single prop_value
     else:
+        dep_list.append(prop_value)
         prop_type = prop_value.split('--')[0]
         if prop_type == 'relationship':
             prop_type = 'stix-core-relationship'
-        prop_var = '$' + prop_type  + inc_add
+        prop_var = '$' + prop_type + inc_add
         prop_var_list.append(prop_var)
         match += ' ' + prop_var + ' isa ' + prop_type + ', has stix-id ' + '"' + prop_value + '";\n'
-  
+
     # Then setup and insert the relation
     insert = '\n $' + relation + inc_add + ' (' + owner + ':' + obj_var
     for prop_var in prop_var_list:
         insert += ', ' + pointed_to + ':' + prop_var
     insert += ') isa ' + relation + ';\n'
-    return match, insert
+    return match, insert, dep_list
 
 
 def get_embedded_match(source_id, i=1):
@@ -558,13 +573,13 @@ def get_full_object_match(source_id):
     match += source_var + ' has $properties;\n'
     # match += '$embedded (owner:' + source_var + ', pointed-to:$point ) isa embedded;\n'
     return source_var, match
-    
 
-#---------------------------------------------------
-# 1.7) Helper Methods for 
+
+# ---------------------------------------------------
+# 1.7) Helper Methods for
 #           - converting a Python value --> typeql string
 #           - splitting a list of total properties into properties and relations
-#---------------------------------------------------
+# ---------------------------------------------------
 
 
 def val_tql(val):
@@ -587,7 +602,7 @@ def val_tql(val):
     elif isinstance(val, float):
         return str(val)
     elif isinstance(val, datetime.datetime):
-        return  str(val.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3]) 
+        return str(val.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3])
     else:
         return logger.error(f'value  not supported: {val}')
 
@@ -606,17 +621,15 @@ def split_on_activity_type(total_props, obj_tql):
     prop_list = []
     rel_list = []
     for prop in total_props:
-      tql_prop_name = obj_tql[prop]
-      
-      if tql_prop_name == "":
-        rel_list.append(prop)
-        #logger.debug(f'Im a rel --> {prop},        tql --> {tql_prop_name}')
-      else:
-        prop_list.append(prop)
-        #logger.debug(f'Im a prop --> {prop},        tql --> {tql_prop_name}')
-        
+        tql_prop_name = obj_tql[prop]
+
+        if tql_prop_name == "":
+            rel_list.append(prop)
+            # logger.debug(f'Im a rel --> {prop},        tql --> {tql_prop_name}')
+        else:
+            prop_list.append(prop)
+            # logger.debug(f'Im a prop --> {prop},        tql --> {tql_prop_name}')
+
     return prop_list, rel_list
-        
+
 ###################################################################################################
-
-
