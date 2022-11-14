@@ -1,32 +1,22 @@
 """Python STIX2 TypeDB Source/Sink"""
-import errno
-import io
+
 import json
-import os
-import re
-import stat
+from pathlib import Path
 from typedb.client import *
 
-#from .stql import stix2_to_typeql, get_embedded_match, raw_stix2_to_typeql, convert_ans_to_stix
-from .import_stix_to_typeql import stix2_to_typeql, raw_stix2_to_typeql
+from .import_stix_to_typeql import raw_stix2_to_typeql, stix2_to_match_insert
+from .delete_stix_to_typeql import delete_stix_object, add_delete_layers
 from .import_stix_utilities import get_embedded_match
 from .export_intermediate_to_stix import convert_ans_to_stix
+from .initialise import setup_database, load_schema, sort_layers, load_markings, check_stix_ids
 
 from stix2 import v21
 from stix2.base import _STIXBase
 from stix2.datastore import (
-    DataSink, DataSource, DataSourceError, DataStoreMixin,
-)
-from stix2.datastore.filters import Filter, FilterSet, apply_common_filters
+    DataSink, DataSource, )
+from stix2.datastore.filters import FilterSet
 from stix2.parsing import parse
-from stix2.serialization import fp_serialize
-from stix2.utils import format_datetime, get_type_from_id, parse_into_datetime
 
-from stixorm.module.initialise import setup_database,load_schema,load_markings,load_typeql_data
-
-import sys
-from pathlib import Path
-print(Path.cwd())  # /home/skovorodkin/stack
 import logging
 logger = logging.getLogger(__name__)
 
@@ -138,8 +128,10 @@ class TypeDBSink(DataSink):
         clean = 'match $a isa attribute; not { $b isa thing; $b has $a;}; delete $a isa attribute;'
         cleandict = {'delete': clean}
         cleanup = [cleandict]
+
         connection = {'uri': self.uri, 'port': self.port, 'database': self.database, 'user': self.user,
                       'password': self.password}
+
         try:
             typedb = TypeDBSource(connection, "STIX21")
             layers = []
@@ -149,8 +141,8 @@ class TypeDBSink(DataSink):
             for stixid in stixid_list:
                 local_obj = typedb.get(stixid)
                 dep_match, dep_insert, indep_ql, core_ql, dep_obj = raw_stix2_to_typeql(local_obj, self.import_type)
-                del_match, del_tql = delete_stix_object(local_obj, dep_match, dep_insert, indep_ql, core_ql,
-                                                        self.import_type)
+                # TODO: Brett check here there is a bug
+                del_match, del_tql = delete_stix_object(local_obj, dep_match, dep_insert, indep_ql, core_ql,"STIX21")
                 logger.debug(' ---------------------------Delete Object----------------------')
                 logger.debug(f'dep_match -> {dep_match}\n dep_insert -> {dep_insert}')
                 logger.debug(f'indep_ql -> {indep_ql}\n dep_obj -> {dep_obj}')
