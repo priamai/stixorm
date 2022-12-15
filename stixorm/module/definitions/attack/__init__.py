@@ -15,7 +15,6 @@ __status__ = "Production"
 
 import json
 from glob import glob
-from loguru import logger
 import os
 from pathlib import Path
 
@@ -32,5 +31,3 @@ for file_path in glob(f'{dir_path}/data/*.json'):
         key = f'{file_name}'
 
         attack_models[key] = json.load(json_file)
-
-logger.debug('Loaded %d attack dictionary objects' % len(attack_models))

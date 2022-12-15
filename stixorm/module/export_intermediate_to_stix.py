@@ -444,7 +444,7 @@ def make_embedded_relations(reln, reln_name, stix_dict, is_list, obj_name):
 
 
 def make_standard_relations(reln, reln_name, stix_dict, is_list, obj_name=None):
-    logger.warning(" make standard relations visited, but not implemented")
+    logger.warning(" Make standard relations visited, but not implemented")
     return stix_dict
 
 
