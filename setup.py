@@ -12,7 +12,7 @@ setup(
     version = "0.1.0",
     author = "Brett Forbes, Paolo Di Prodi",
     author_email = "paolo@priam.ai",
-    description = ("Package for using Stix with TypeDB "),
+    description = ("Package for using Stix with TypeDB"),
     license = "Apache License 2.0",
     keywords = "stix2.1",
     url = "https://github.com/priamai/stixorm.git",
@@ -27,6 +27,6 @@ setup(
         'License :: OSI Approved :: Apache Software License',
         'Programming Language :: Python :: 3',
     ],
-   install_requires=['typedb-client==2.9.0'], #external packages as dependencies
+   install_requires=['typedb-client==2.9.0','stix2==3.0.1'], #external packages as dependencies
    scripts=[]
 )

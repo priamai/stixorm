@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "stixorm"
+description = "Package for using Stix with TypeDB"
+readme = "README.md"
+requires-python = ">=3.9"
+keywords = ["stix", "orm","oasis"]
+license = {text = "Apache License 2.0"}
+classifiers = [
+        "Development Status :: 3 - Alpha",
+        "Topic :: Utilities",
+        'License :: OSI Approved :: Apache Software License',
+        'Programming Language :: Python :: 3',
+    ]
+dependencies = [
+    "typedb-client==2.9.0",
+    'stix2==3.0.1',
+]
+dynamic = ["version"]
+
+[project.optional-dependencies]
+datadev = ["pandas", "networkx"]
