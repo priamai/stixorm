@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "stixorm"
 description = "Package for using Stix with TypeDB"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.8"
 keywords = ["stix", "orm","oasis"]
 license = {text = "Apache License 2.0"}
 classifiers = [

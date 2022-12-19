@@ -9,7 +9,7 @@ def read(fname):
 
 setup(
     name = "stixorm",
-    version = "0.1.0",
+    version = "0.1.2",
     author = "Brett Forbes, Paolo Di Prodi",
     author_email = "paolo@priam.ai",
     description = ("Package for using Stix with TypeDB"),
